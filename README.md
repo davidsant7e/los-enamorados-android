@@ -31,7 +31,8 @@ Ingeniería inversa publicada por [jsphu/polosmart-pbs163-ble](https://github.co
 - Canal: Nordic UART con el último byte cambiado — servicio `6E400001-B5A3-F393-E0A9-E50E24DCCA9F`, RX `…0002…` (escribir), TX `…0003…` (avisos).
 - Trama del celular: `DF | largo (2) | suma | categoría | 01 | subcomando | largo datos (2) | datos`, con `largo = datos + 5` y la suma de todos los demás bytes en la posición 3.
 - Respuesta del reloj: `FD | largo | suma | categoría | subcomando | estado` (termina en `01` si salió bien).
-- Comandos usados (categoría `02`): `01` hora, `0B` vibrar, `0C` interruptores de avisos, `11` llamada, `12` mensaje, `1A` 12/24 h, `1B` unidades, `1D` clima. Botones de música: categoría `0C`.
+- Comandos usados (categoría `02`): `01` hora, `0B` vibrar, `0C` interruptores de avisos, `11` llamada, `12` mensaje, `1A` 12/24 h, `1B` unidades, `1D` clima. Botones de música: categoría `0C`; el Smartwatch manda `02` (pausa), `03` (anterior) y `04` (siguiente), el PBS163 `0A`–`0D`.
+- **Probado con el Smartwatch el 24 nov 2026**: el reloj respondió «bien» a vibrar, hora, clima, interruptores, mensaje, llamada y colgar. Servicios: `180F`, `180A`, `FF00`, `FF10`, `FF12` y el canal `6E400001…9F`; MTU 256.
 - La pantalla muestra unos 42 caracteres en 3 líneas, sin emojis; el byte `00` corta el texto (la app los limpia).
 
 Ese trabajo se hizo con otro reloj de la misma familia (Polosmart PBS163). Este «Smartwatch» trae además llamadas por Bluetooth clásico, así que puede entender comandos de más o de menos: la consola existe para averiguarlo.

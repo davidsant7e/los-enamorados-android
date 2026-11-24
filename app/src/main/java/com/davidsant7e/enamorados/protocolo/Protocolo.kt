@@ -66,10 +66,37 @@ object Protocolo {
 
     /** Botones del reloj en la pantalla de música o cámara (categoría 0x0C). */
     val NOMBRES_CONTROL: Map<Int, String> = mapOf(
-        0x03 to "cámara", 0x04 to "cámara",
+        // Smartwatch del usuario (firmware V2.2), visto en su registro del 24 nov: 02, 03 y 04.
+        0x02 to "reproducir/pausa", 0x03 to "anterior (o cámara)", 0x04 to "siguiente (o cámara)",
+        // Polosmart PBS163 (protocolo publicado).
         0x0A to "reproducir/pausa", 0x0B to "reproducir/pausa",
         0x0C to "anterior", 0x0D to "siguiente",
     )
+
+    /** Qué tecla multimedia corresponde a un botón del reloj (null si no es de música). */
+    enum class Tecla { PAUSA, ANTERIOR, SIGUIENTE }
+
+    fun teclaDe(sub: Int): Tecla? = when (sub) {
+        0x02, 0x0A, 0x0B -> Tecla.PAUSA
+        0x03, 0x0C -> Tecla.ANTERIOR
+        0x04, 0x0D -> Tecla.SIGUIENTE
+        else -> null
+    }
+
+    /**
+     * Texto de un campo de Device Information. Algunos relojes guardan datos binarios (el «software»
+     * del Smartwatch salió con símbolos raros): si no es texto legible, se muestra en hexadecimal.
+     */
+    fun textoLegible(bytes: ByteArray): String? {
+        val sinCeros = bytes.dropLastWhile { it.toInt() == 0 }.toByteArray()
+        if (sinCeros.isEmpty()) return null
+        val texto = String(sinCeros, Charsets.UTF_8).trim()
+        val legible = texto.isNotEmpty() && texto.none { it == '\uFFFD' || (it.isISOControl()) }
+        return if (legible) texto else "0x" + hex(sinCeros).replace(" ", "")
+    }
+
+    /** Códigos de Android al cortarse la conexión que significan «el reloj no respondió a tiempo». */
+    fun esTiempoAgotado(status: Int): Boolean = status in setOf(8, 19, 133, 147)
 
     fun uuid16(corto: Int): UUID = UUID.fromString(String.format("0000%04x-0000-1000-8000-00805f9b34fb", corto))
 

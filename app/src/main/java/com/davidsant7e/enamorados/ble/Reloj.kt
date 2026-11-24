@@ -41,7 +41,7 @@ import java.util.Calendar
 sealed class Estado(val texto: String) {
     data object SinReloj : Estado("Elige tu reloj")
     data object Desconectado : Estado("Desconectado")
-    data object Conectando : Estado("Conectando…")
+    data object Conectando : Estado("Conectando… (la primera vez puede tardar hasta un minuto)")
     data object Preparando : Estado("Preparando…")
     data class Listo(val mtu: Int) : Estado("Conectado")
     data class Error(val mensaje: String) : Estado("Error: $mensaje")
@@ -81,6 +81,7 @@ class Reloj(contexto: Context) {
     private val candado = Mutex()
     @Volatile private var pendiente: CompletableDeferred<Pair<Int, ByteArray?>>? = null
     private var vibrando: Job? = null
+    private var reintentoHecho = false
 
     fun direccionGuardada(): String? = preferencias.getString("direccion", null)
     fun nombreGuardado(): String? = preferencias.getString("nombre", null)
@@ -108,6 +109,11 @@ class Reloj(contexto: Context) {
     }
 
     fun conectar() {
+        reintentoHecho = false
+        abrir()
+    }
+
+    private fun abrir() {
         val direccion = direccionGuardada() ?: run { _estado.value = Estado.SinReloj; return }
         val adaptador = manager?.adapter
         if (adaptador == null || !adaptador.isEnabled) { _estado.value = Estado.Error("Bluetooth apagado"); return }
@@ -153,10 +159,19 @@ class Reloj(contexto: Context) {
                 } else {
                     val antes = _estado.value
                     cerrarGatt()
-                    val motivo = if (status == 133 || status == 8 || status == 19) "el reloj no respondió (código $status)" else "código $status"
+                    val agotado = Protocolo.esTiempoAgotado(status)
+                    val motivo = if (agotado) "el reloj no respondió a tiempo (código $status)" else "código $status"
+                    Registro.evento("CONEXION", "cerrada", "status" to status, "estaba" to antes.texto)
+                    // Si falló al conectar por tiempo agotado, se reintenta solo una vez (al usuario le pasó con el código 147).
+                    if (agotado && antes !is Estado.Listo && !reintentoHecho) {
+                        reintentoHecho = true
+                        nota("$motivo; reintentando…")
+                        delay(1_500)
+                        abrir()
+                        return@launch
+                    }
                     _estado.value = if (antes is Estado.Listo) Estado.Desconectado else Estado.Error(motivo)
                     nota("Se cerró la conexión: $motivo")
-                    Registro.evento("CONEXION", "cerrada", "status" to status, "estaba" to antes.texto)
                 }
             }
         }
@@ -230,7 +245,7 @@ class Reloj(contexto: Context) {
             val datos = LinkedHashMap<String, String>()
             for ((uuid, nombre) in Protocolo.CAMPOS_INFO) {
                 val c = s.getCharacteristic(uuid) ?: continue
-                leer(g, c)?.let { v -> String(v, Charsets.UTF_8).trim { it <= ' ' || it == '\u0000' }.takeIf { it.isNotEmpty() }?.let { datos[nombre] = it } }
+                leer(g, c)?.let { v -> Protocolo.textoLegible(v)?.let { datos[nombre] = it } }
             }
             _info.value = datos
         }
@@ -343,11 +358,11 @@ class Reloj(contexto: Context) {
 
     /** Botones de la pantalla de música del reloj → teclas multimedia del celular. */
     private fun boton(sub: Int) {
-        val tecla = when (sub) {
-            0x0A, 0x0B -> KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
-            0x0C -> KeyEvent.KEYCODE_MEDIA_PREVIOUS
-            0x0D -> KeyEvent.KEYCODE_MEDIA_NEXT
-            else -> return
+        val tecla = when (Protocolo.teclaDe(sub)) {
+            Protocolo.Tecla.PAUSA -> KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+            Protocolo.Tecla.ANTERIOR -> KeyEvent.KEYCODE_MEDIA_PREVIOUS
+            Protocolo.Tecla.SIGUIENTE -> KeyEvent.KEYCODE_MEDIA_NEXT
+            null -> return
         }
         val audio = ctx.getSystemService(AudioManager::class.java) ?: return
         audio.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, tecla))

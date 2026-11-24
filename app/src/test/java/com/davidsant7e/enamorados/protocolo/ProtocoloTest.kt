@@ -111,6 +111,34 @@ class ProtocoloTest {
         assertEquals("DF 00 06", Protocolo.hex(byteArrayOf(0xDF.toByte(), 0, 6)))
     }
 
+    @Test fun `botones de musica del Smartwatch y del PBS163`() {
+        // Registro del 24 nov: el Smartwatch del usuario manda 0C/02, 0C/03 y 0C/04.
+        val r = Lector().agregar(h("DF 00 06 F6 0C 01 02 00 01 01")).single() as Recibido.Evento
+        assertEquals(Protocolo.Tecla.PAUSA, Protocolo.teclaDe(r.sub))
+        assertEquals(Protocolo.Tecla.ANTERIOR, Protocolo.teclaDe(0x03))
+        assertEquals(Protocolo.Tecla.SIGUIENTE, Protocolo.teclaDe(0x04))
+        assertEquals(Protocolo.Tecla.PAUSA, Protocolo.teclaDe(0x0A))
+        assertEquals(Protocolo.Tecla.ANTERIOR, Protocolo.teclaDe(0x0C))
+        assertEquals(Protocolo.Tecla.SIGUIENTE, Protocolo.teclaDe(0x0D))
+        assertNull(Protocolo.teclaDe(0x7F))
+        assertEquals("evento reproducir/pausa 01", r.describir())
+    }
+
+    @Test fun `datos del reloj legibles o en hexadecimal`() {
+        assertEquals("10000004", Protocolo.textoLegible("10000004".toByteArray()))
+        assertEquals("10000", Protocolo.textoLegible(byteArrayOf(0x31, 0x30, 0x30, 0x30, 0x30, 0, 0)))
+        assertEquals("0xC0F238", Protocolo.textoLegible(byteArrayOf(0xC0.toByte(), 0xF2.toByte(), 0x38, 0x00, 0x00)))
+        assertEquals("0x0138", Protocolo.textoLegible(byteArrayOf(0x01, 0x38)))
+        assertNull(Protocolo.textoLegible(ByteArray(3)))
+    }
+
+    @Test fun `codigos de tiempo agotado`() {
+        assertTrue(Protocolo.esTiempoAgotado(147)) // el que salió en el Motorola
+        assertTrue(Protocolo.esTiempoAgotado(133))
+        assertFalse(Protocolo.esTiempoAgotado(0))
+        assertFalse(Protocolo.esTiempoAgotado(22))
+    }
+
     @Test fun `nombres conocidos y desconocidos`() {
         assertEquals("buscar reloj", Protocolo.nombre(0x02, 0x0B))
         assertEquals("anterior", Protocolo.nombre(0x0C, 0x0C))
