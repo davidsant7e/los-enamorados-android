@@ -43,6 +43,8 @@ sealed class Estado(val texto: String) {
     data object Desconectado : Estado("Desconectado")
     data object Conectando : Estado("Conectando… (la primera vez puede tardar hasta un minuto)")
     data object Preparando : Estado("Preparando…")
+    /** Conexión en espera (autoConnect): Android conecta solo cuando el reloj quede libre, sin límite de tiempo. */
+    data object Esperando : Estado("Esperando al reloj… (se conecta solo cuando HryFine lo suelte)")
     data class Listo(val mtu: Int) : Estado("Conectado")
     data class Error(val mensaje: String) : Estado("Error: $mensaje")
 }
@@ -81,7 +83,7 @@ class Reloj(contexto: Context) {
     private val candado = Mutex()
     @Volatile private var pendiente: CompletableDeferred<Pair<Int, ByteArray?>>? = null
     private var vibrando: Job? = null
-    private var reintentoHecho = false
+    private var fallosEsperando = 0
 
     fun direccionGuardada(): String? = preferencias.getString("direccion", null)
     fun nombreGuardado(): String? = preferencias.getString("nombre", null)
@@ -103,28 +105,33 @@ class Reloj(contexto: Context) {
     /** Conecta solo si no hay ya una conexión en curso o lista (al volver a abrir la app). */
     fun conectarSiHaceFalta() {
         when (_estado.value) {
-            is Estado.Listo, Estado.Conectando, Estado.Preparando -> return
+            is Estado.Listo, Estado.Conectando, Estado.Preparando, Estado.Esperando -> return
             else -> conectar()
         }
     }
 
     fun conectar() {
-        reintentoHecho = false
-        abrir()
+        fallosEsperando = 0
+        abrir(esperar = false)
     }
 
-    private fun abrir() {
+    /**
+     * esperar=false: conexión directa (Android la corta a los ~30 s con el código 147 si el reloj no contesta).
+     * esperar=true: autoConnect, sin límite de tiempo; conecta en cuanto el reloj se anuncie o HryFine lo suelte.
+     */
+    private fun abrir(esperar: Boolean) {
         val direccion = direccionGuardada() ?: run { _estado.value = Estado.SinReloj; return }
         val adaptador = manager?.adapter
         if (adaptador == null || !adaptador.isEnabled) { _estado.value = Estado.Error("Bluetooth apagado"); return }
         cerrarGatt()
-        _estado.value = Estado.Conectando
-        nota("Conectando con $direccion…")
-        Registro.evento("CONEXION", "inicio", "direccion" to direccion)
+        _estado.value = if (esperar) Estado.Esperando else Estado.Conectando
+        nota(if (esperar) "Esperando a que $direccion esté libre…" else "Conectando con $direccion…")
+        Registro.evento("CONEXION", if (esperar) "espera" else "inicio", "direccion" to direccion,
+            "enlace_compartido" to conectadosAhora().any { it.address.equals(direccion, true) })
         val dispositivo = runCatching { adaptador.getRemoteDevice(direccion) }.getOrElse {
             _estado.value = Estado.Error("dirección inválida"); return
         }
-        gatt = dispositivo.connectGatt(ctx, false, callback, BluetoothDevice.TRANSPORT_LE)
+        gatt = dispositivo.connectGatt(ctx, esperar, callback, BluetoothDevice.TRANSPORT_LE)
     }
 
     fun desconectar() {
@@ -152,6 +159,7 @@ class Reloj(contexto: Context) {
             alcance.launch {
                 if (g != gatt) return@launch
                 if (nuevo == BluetoothProfile.STATE_CONNECTED && status == BluetoothGatt.GATT_SUCCESS) {
+                    fallosEsperando = 0
                     _estado.value = Estado.Preparando
                     nota("Enlace abierto; buscando servicios…")
                     delay(600) // algunos relojes necesitan un momento antes de listar servicios
@@ -162,15 +170,19 @@ class Reloj(contexto: Context) {
                     val agotado = Protocolo.esTiempoAgotado(status)
                     val motivo = if (agotado) "el reloj no respondió a tiempo (código $status)" else "código $status"
                     Registro.evento("CONEXION", "cerrada", "status" to status, "estaba" to antes.texto)
-                    // Si falló al conectar por tiempo agotado, se reintenta solo una vez (al usuario le pasó con el código 147).
-                    if (agotado && antes !is Estado.Listo && !reintentoHecho) {
-                        reintentoHecho = true
-                        nota("$motivo; reintentando…")
-                        delay(1_500)
-                        abrir()
+                    // Registro del 24 nov: al sincronizar HryFine, Android cerró este enlace (código 22) y los
+                    // reintentos directos se agotaron (147). En vez de rendirse, queda esperando con autoConnect.
+                    val seguir = if (antes is Estado.Esperando) fallosEsperando++ < MAX_FALLOS_ESPERA
+                        else antes is Estado.Listo || agotado
+                    if (seguir) {
+                        _estado.value = Estado.Esperando
+                        nota("Se cerró la conexión: $motivo; quedo esperando al reloj")
+                        delay(if (antes is Estado.Esperando) 5_000 else 1_500)
+                        if (_estado.value != Estado.Esperando || gatt != null) return@launch // lo cancelaste o ya se reabrió
+                        abrir(esperar = true)
                         return@launch
                     }
-                    _estado.value = if (antes is Estado.Listo) Estado.Desconectado else Estado.Error(motivo)
+                    _estado.value = Estado.Error(motivo)
                     nota("Se cerró la conexión: $motivo")
                 }
             }
@@ -376,6 +388,8 @@ class Reloj(contexto: Context) {
 
     companion object {
         const val MAX_LINEAS = 400
+        /** Fallos seguidos estando en espera antes de mostrar el error (cada uno espera 5 s). */
+        const val MAX_FALLOS_ESPERA = 20
 
         fun propiedades(p: Int): String = buildList {
             if (p and BluetoothGattCharacteristic.PROPERTY_READ != 0) add("leer")

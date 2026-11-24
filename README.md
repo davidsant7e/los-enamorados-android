@@ -6,7 +6,7 @@ App Android que **habla directo con el smartwatch**, sin pasar por la app del fa
 
 Es la carta VI del mazo: el celular y el reloj, conversando.
 
-## Qué hace (versión 0.1, experimental)
+## Qué hace (versión 0.1.2, experimental)
 
 - **Encuentra y conecta el reloj** por Bluetooth de baja energía. Muestra primero los aparatos «conectados ahora» (si HryFine está conectado, el reloj deja de anunciarse, pero se le puede hablar por el mismo enlace), luego los emparejados y los que encuentre cerca. Marca con ★ los que anuncian el canal de HryFine.
 - **Panel del reloj**: estado, batería y datos del fabricante (modelo, firmware…).
@@ -23,6 +23,8 @@ Es la carta VI del mazo: el celular y el reloj, conversando.
 4. Prueba **Vibrar**. Si el reloj vibra, el canal funciona; sigue con mensaje, hora, llamada y clima.
 
 **HryFine puede quedarse instalado.** Android permite que dos apps hablen con el mismo reloj. Si algo no responde, cierra HryFine (Ajustes → Apps → HryFine → Forzar detención) y vuelve a conectar.
+
+**Si se corta** (por ejemplo cuando HryFine sincroniza y Android cierra el enlace), la app no se rinde: queda en «Esperando al reloj…» y se reconecta sola en cuanto el reloj queda libre, sin el límite de 30 s que daba el código 147. «Cancelar» detiene la espera.
 
 ## El protocolo
 

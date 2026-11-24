@@ -199,6 +199,7 @@ private fun TarjetaReloj(reloj: Reloj, estado: Estado, bateria: Int?, info: Map<
         if (info.isNotEmpty()) Text(info.entries.joinToString("  ·  ") { "${it.key}: ${it.value}" }, style = MaterialTheme.typography.bodySmall)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             when (estado) {
+                Estado.Esperando -> OutlinedButton(onClick = reloj::desconectar) { Text("Cancelar") }
                 is Estado.Listo, Estado.Conectando, Estado.Preparando -> OutlinedButton(onClick = reloj::desconectar) { Text("Desconectar") }
                 else -> Button(onClick = acciones.conectar) { Text("Conectar") }
             }
