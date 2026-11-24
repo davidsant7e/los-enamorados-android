@@ -99,6 +99,14 @@ class Reloj(contexto: Context) {
 
     // ------------------------------------------------------------------ conexión
 
+    /** Conecta solo si no hay ya una conexión en curso o lista (al volver a abrir la app). */
+    fun conectarSiHaceFalta() {
+        when (_estado.value) {
+            is Estado.Listo, Estado.Conectando, Estado.Preparando -> return
+            else -> conectar()
+        }
+    }
+
     fun conectar() {
         val direccion = direccionGuardada() ?: run { _estado.value = Estado.SinReloj; return }
         val adaptador = manager?.adapter
@@ -210,8 +218,9 @@ class Reloj(contexto: Context) {
         if (rx == null || tx == null) return falla("faltan las características RX/TX")
 
         operar("MTU") { g.requestMtu(247) }
+        if (g != gatt) return // se desconectó mientras tanto
         nota("MTU: $mtu (cada envío lleva hasta ${mtu - 3} bytes)")
-        if (!avisos(g, tx)) return falla("el reloj no aceptó los avisos de TX")
+        if (!avisos(g, tx)) return if (g == gatt) falla("el reloj no aceptó los avisos de TX") else Unit
 
         g.getService(Protocolo.BATERIA)?.getCharacteristic(Protocolo.NIVEL_BATERIA)?.let { c ->
             leer(g, c)?.firstOrNull()?.let { _bateria.value = it.toInt() and 0xFF }
@@ -225,6 +234,7 @@ class Reloj(contexto: Context) {
             }
             _info.value = datos
         }
+        if (g != gatt) return // el reloj se fue mientras se leían batería e info: no marcar «Conectado»
         _estado.value = Estado.Listo(mtu)
         nota("Listo. Batería: ${_bateria.value?.let { "$it %" } ?: "?"}  ${_info.value.entries.joinToString("  ") { "${it.key}: ${it.value}" }}")
         Registro.evento("CONEXION", "lista", "mtu" to mtu, "bateria" to _bateria.value, "info" to _info.value.toString())

@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
                     reloj = reloj,
                     buscador = buscador,
                     permisos = permisos,
-                    eligiendo = eligiendo || reloj.direccionGuardada() == null,
+                    eligiendo = eligiendo,
                     cercanos = cercanos,
                     acciones = Acciones(
                         pedirPermisos = ::pedir,
@@ -81,9 +81,7 @@ class MainActivity : ComponentActivity() {
 
     private fun alListo() {
         if (reloj.direccionGuardada() == null) abrirEleccion()
-        else if (reloj.estado.value !is com.davidsant7e.enamorados.ble.Estado.Listo) {
-            if (bluetoothEncendido()) reloj.conectar() else pedirBluetooth()
-        }
+        else if (bluetoothEncendido()) reloj.conectarSiHaceFalta() else pedirBluetooth()
     }
 
     private fun abrirEleccion() {

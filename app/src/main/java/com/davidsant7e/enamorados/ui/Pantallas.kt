@@ -94,7 +94,8 @@ fun Enamorados(
         ) {
             item { Encabezado() }
             if (!permisos) item { Permisos(acciones.pedirPermisos) }
-            if (eligiendo) {
+            // Sin reloj elegido siempre se muestra la elección (el estado sí lo vigila la pantalla).
+            if (eligiendo || estado is Estado.SinReloj) {
                 item { Eleccion(cercanos, encontrados, buscando, permisos, reloj.direccionGuardada() != null, acciones) }
             } else {
                 item { TarjetaReloj(reloj, estado, bateria, info, acciones) }
