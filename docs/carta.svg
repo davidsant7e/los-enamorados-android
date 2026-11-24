@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 460" width="280" height="460"><defs><linearGradient id="d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f2a5c"/><stop offset="1" stop-color="#f4a582"/></linearGradient><linearGradient id="d2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4a582"/><stop offset="1" stop-color="#1f2a5c"/></linearGradient><clipPath id="c"><rect width="280" height="460" rx="20"/></clipPath></defs><g clip-path="url(#c)"><rect width="280" height="460" fill="url(#d)"/><rect y="346" width="280" height="114" fill="url(#d2)"/>
+<path d="M0 346 Q70 318 140 334 Q210 350 280 326 V346 Z" fill="#1f2a5c" opacity="0.35"/>
+<!-- el corazón en lo alto, como el ángel de la carta clásica -->
+<path d="M140 132 C112 112 112 88 126 82 C133 79 139 83 140 90 C141 83 147 79 154 82 C168 88 168 112 140 132 Z" fill="#f4a582"/>
+<path d="M140 132 V150" stroke="#f4a582" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round"/>
+<!-- el reloj (izquierda) -->
+<rect x="62" y="176" width="26" height="34" rx="3" fill="#f4a582"/><rect x="62" y="290" width="26" height="34" rx="3" fill="#f4a582"/>
+<rect x="46" y="204" width="58" height="92" rx="14" fill="#1f2a5c" stroke="#f4a582" stroke-width="3"/>
+<circle cx="75" cy="250" r="20" fill="none" stroke="#f4a582" stroke-width="3"/><path d="M75 250 V238 M75 250 L84 256" stroke="#f4a582" stroke-width="3" stroke-linecap="round"/>
+<!-- el celular (derecha) -->
+<rect x="174" y="176" width="62" height="148" rx="10" fill="#1f2a5c" stroke="#f4a582" stroke-width="3"/>
+<path d="M196 310 H214" stroke="#f4a582" stroke-width="3" stroke-linecap="round"/>
+<path d="M190 214 H220 M190 228 H214 M190 242 H218" stroke="#f4a582" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+<!-- la conversación: ondas que van y vienen -->
+<path d="M114 230 Q124 222 134 230 Q144 238 154 230 Q160 225 166 228" fill="none" stroke="#f4a582" stroke-width="3" stroke-linecap="round"/>
+<path d="M166 270 Q156 262 146 270 Q136 278 126 270 Q120 265 114 268" fill="none" stroke="#f4a582" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+<path d="M40 380 Q140 350 240 380" fill="none" stroke="#1f2a5c" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>
+<path d="M50 75L51.5 78.5L55 80L51.5 81.5L50 85L48.5 81.5L45 80L48.5 78.5Z" fill="#f4a582"/><path d="M232 61L233.5 64.5L237 66L233.5 67.5L232 71L230.5 67.5L227 66L230.5 64.5Z" fill="#f4a582"/>
+<text x="140" y="40" text-anchor="middle" fill="#f4a582" font-family="'Helvetica Neue', Arial, sans-serif" font-size="16" letter-spacing="7" font-weight="bold">VI</text><text x="140" y="434" text-anchor="middle" fill="#f4a582" font-family="'Helvetica Neue', Arial, sans-serif" font-size="16" letter-spacing="4" font-weight="bold">LOS ENAMORADOS</text><text x="140" y="452" text-anchor="middle" fill="#f4a582" font-family="'Helvetica Neue', Arial, sans-serif" font-size="10" letter-spacing="5">RELOJ Y CELULAR</text></g></svg>

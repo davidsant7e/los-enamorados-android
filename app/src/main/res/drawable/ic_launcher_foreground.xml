@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícono VI · Los Enamorados (Arcanos, duotono): el reloj y el celular unidos por un corazón. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group android:translateX="23" android:translateY="22" android:scaleX="0.62" android:scaleY="0.62">
+        <!-- correa del reloj -->
+        <path android:pathData="M20,14 H38 V28 H20 Z M20,72 H38 V86 H20 Z"
+            android:fillColor="#f4a582" />
+        <!-- caja del reloj -->
+        <path android:pathData="M16,28 H42 A6,6 0 0 1 48,34 V66 A6,6 0 0 1 42,72 H16 A6,6 0 0 1 10,66 V34 A6,6 0 0 1 16,28 Z"
+            android:fillColor="#1f2a5c"
+            android:strokeColor="#f4a582"
+            android:strokeWidth="3" />
+        <!-- celular -->
+        <path android:pathData="M62,18 H84 A5,5 0 0 1 89,23 V77 A5,5 0 0 1 84,82 H62 A5,5 0 0 1 57,77 V23 A5,5 0 0 1 62,18 Z"
+            android:fillColor="#1f2a5c"
+            android:strokeColor="#f4a582"
+            android:strokeWidth="3" />
+        <path android:pathData="M69,74 H77"
+            android:strokeColor="#f4a582"
+            android:strokeWidth="3"
+            android:strokeLineCap="round" />
+        <!-- corazón que los une -->
+        <path android:pathData="M50,62 C38,53 38,43 44,40 C47,38.5 49.5,40 50,43 C50.5,40 53,38.5 56,40 C62,43 62,53 50,62 Z"
+            android:fillColor="#f4a582" />
+    </group>
+</vector>
