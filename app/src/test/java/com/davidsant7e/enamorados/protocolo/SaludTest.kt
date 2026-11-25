@@ -51,4 +51,29 @@ class SaludTest {
         assertTrue(Salud.esRuido(0x05, 0x0C))
         assertFalse(Salud.esRuido(0x0E, 0x04))
     }
+
+    @Test fun `pulso y presion reales del 24 nov`() {
+        val pulso = Lector().agregar(h("DF 00 11 BB 05 01 04 00 0C 35 78 00 01 00 01 22 91 00 00 00 53")).single() as Recibido.Evento
+        assertTrue(pulso.sumaBien)
+        val p = Salud.lecturasDe(pulso.categoria, pulso.sub, pulso.datos).single()
+        assertEquals(Salud.Medicion.PULSO, p.tipo)
+        assertEquals(Triple(2026, 11, 24), Triple(p.anio, p.mes, p.dia))
+        assertEquals("20:39", p.hora)
+        assertEquals("83 lpm", p.texto)
+
+        val presion = Lector().agregar(h("DF 00 11 5C 05 01 05 00 0C 35 78 00 01 00 01 22 CB 00 00 70 49")).single() as Recibido.Evento
+        assertTrue(presion.sumaBien)
+        val b = Salud.lecturasDe(presion.categoria, presion.sub, presion.datos).single()
+        assertEquals("112/73 mmHg", b.texto)
+        assertEquals("20:40", b.hora)
+        assertTrue(Salud.esRuido(0x05, 0x04))
+    }
+
+    @Test fun `varias lecturas y datos que no cuadran`() {
+        val dos = h("35 78 00 02 00 01 22 91 00 00 00 53 00 01 23 00 00 00 00 4B")
+        assertEquals(listOf("83 lpm", "75 lpm"), Salud.lecturasDe(0x05, 0x04, dos).map { it.texto })
+        assertTrue(Salud.lecturasDe(0x05, 0x04, h("35 78 00 02 00 01 22 91 00 00 00 53")).isEmpty()) // falta la 2.ª
+        assertTrue(Salud.lecturasDe(0x05, 0x05, h("35 78 00 01 00 01 22 CB 00 00 00 00")).isEmpty()) // sin valores
+        assertTrue(Salud.lecturasDe(0x05, 0x0C, ByteArray(12)).isEmpty())
+    }
 }

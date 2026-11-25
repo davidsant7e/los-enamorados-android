@@ -6,10 +6,10 @@ App Android que **habla directo con el smartwatch**, sin pasar por la app del fa
 
 Es la carta VI del mazo: el celular y el reloj, conversando.
 
-## Qué hace (versión 0.2, experimental)
+## Qué hace (versión 0.2.1, experimental)
 
 - **Encuentra y conecta el reloj** por Bluetooth de baja energía. Muestra primero los aparatos «conectados ahora» (si HryFine está conectado, el reloj deja de anunciarse, pero se le puede hablar por el mismo enlace), luego los emparejados y los que encuentre cerca. Marca con ★ los que anuncian el canal de HryFine.
-- **Salud**: pasos de hoy, distancia y calorías (por confirmar) — se piden con «Actualizar pasos» y también llegan cuando HryFine sincroniza. Botones para medir **pulso, presión y oxígeno**: la app guarda lo que manda el reloj mientras mide (en decimal y hexadecimal) para terminar de descifrar el formato. Orientativo, no sirve para diagnóstico.
+- **Salud**: pasos de hoy, distancia y calorías (por confirmar) — se piden con «Actualizar pasos» y también llegan cuando HryFine sincroniza. Botones para medir **pulso y presión**: el resultado llega solo a los ~10 s y queda en una lista (también los que mide el reloj por su cuenta y llegan al sincronizar). Oxígeno: el reloj todavía no responde; lo que llegue se guarda sin descifrar. Orientativo, no sirve para diagnóstico.
 - **Panel del reloj**: estado, batería y datos del fabricante (modelo, firmware…).
 - **Probar el reloj**: vibrar (un pulso o 5 s), poner la hora del celular, enviar un mensaje con ícono (SMS, WhatsApp…), simular una llamada y colgarla, enviar el clima.
 - **Botones de música**: en la pantalla de música del reloj, «anterior», «siguiente» y «pausa» controlan la música del celular (se puede apagar).

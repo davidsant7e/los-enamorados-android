@@ -92,6 +92,7 @@ fun Enamorados(
     val actividad by reloj.actividad.collectAsState()
     val midiendo by reloj.midiendo.collectAsState()
     val resultados by reloj.resultados.collectAsState()
+    val lecturas by reloj.lecturas.collectAsState()
     val encontrados by buscador.encontrados.collectAsState()
     val buscando by buscador.buscando.collectAsState()
     val listo = estado is Estado.Listo
@@ -109,7 +110,7 @@ fun Enamorados(
                 item { Eleccion(cercanos, encontrados, buscando, permisos, reloj.direccionGuardada() != null, acciones) }
             } else {
                 item { TarjetaReloj(reloj, estado, bateria, info, acciones) }
-                item { PanelSalud(reloj, listo, actividad, midiendo, resultados) }
+                item { PanelSalud(reloj, listo, actividad, midiendo, resultados, lecturas) }
                 item { PanelPruebas(reloj, listo) }
                 item {
                     Tarjeta("Botones de música del reloj") {
@@ -221,7 +222,10 @@ private fun TarjetaReloj(reloj: Reloj, estado: Estado, bateria: Int?, info: Map<
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PanelSalud(reloj: Reloj, listo: Boolean, actividad: ActividadVista?, midiendo: Midiendo?, resultados: List<ResultadoMedicion>) {
+private fun PanelSalud(
+    reloj: Reloj, listo: Boolean, actividad: ActividadVista?, midiendo: Midiendo?,
+    resultados: List<ResultadoMedicion>, lecturas: List<Salud.Lectura>,
+) {
     val hora = remember { SimpleDateFormat("d MMM HH:mm", Locale.forLanguageTag("es")) }
     Tarjeta("Salud") {
         // Actividad del día
@@ -255,12 +259,22 @@ private fun PanelSalud(reloj: Reloj, listo: Boolean, actividad: ActividadVista?,
                 Salud.Medicion.entries.forEach { m -> Button(onClick = { reloj.medir(m) }, enabled = listo) { Text(m.etiqueta) } }
             }
         }
-        Text("Al terminar, anota lo que muestra el reloj en pantalla: así descifro el formato del resultado. " +
+        if (lecturas.isNotEmpty()) {
+            val meses = listOf("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
+            lecturas.take(10).forEach { l ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(l.tipo.etiqueta, Modifier.width(80.dp), style = MaterialTheme.typography.bodyMedium)
+                    Text(l.texto, Modifier.weight(1f), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text("${l.dia} ${meses.getOrElse(l.mes - 1) { "?" }} ${l.hora}", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+        Text("El resultado llega solo unos segundos después de empezar. El oxígeno todavía no responde en este reloj. " +
             "Las mediciones de un reloj son orientativas, no sirven para diagnóstico.", style = MaterialTheme.typography.bodySmall)
         if (resultados.isNotEmpty()) {
             HorizontalDivider()
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Lo que mandó el reloj al medir", Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                Text("Datos sin descifrar (para Claude)", Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
                 TextButton(onClick = reloj::borrarResultados) { Text("Borrar") }
             }
             resultados.take(12).forEach { r ->

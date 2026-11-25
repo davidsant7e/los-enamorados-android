@@ -103,6 +103,9 @@ class Reloj(contexto: Context) {
     /** Lo que llegó durante las mediciones, el más nuevo primero. */
     val resultados: StateFlow<List<ResultadoMedicion>> = _resultados.asStateFlow()
     private var medicion: Job? = null
+    private val _lecturas = MutableStateFlow(lecturasGuardadas())
+    /** Pulso y presión medidos por el reloj (ya descifrados), la más nueva primero. */
+    val lecturas: StateFlow<List<Salud.Lectura>> = _lecturas.asStateFlow()
 
     private var gatt: BluetoothGatt? = null
     private var rx: BluetoothGattCharacteristic? = null
@@ -422,6 +425,19 @@ class Reloj(contexto: Context) {
             nota("Actividad: ${a.pasos} pasos, ${a.metros} m")
             Registro.evento("SALUD", "actividad", "pasos" to a.pasos, "metros" to a.metros, "tercero" to a.calorias)
         }
+        val nuevas = Salud.lecturasDe(e.categoria, e.sub, e.datos).filter { l -> _lecturas.value.none { it.clave == l.clave } }
+        if (nuevas.isNotEmpty()) {
+            _lecturas.update { (nuevas + it).sortedByDescending { l -> l.anio * 100_000_000L + l.mes * 1_000_000L + l.dia * 100_000L + l.segundos }.take(MAX_RESULTADOS) }
+            preferencias.edit().putString("lecturas", _lecturas.value.joinToString("\n") {
+                listOf(it.tipo.name, it.anio, it.mes, it.dia, it.segundos, it.valor, it.valor2 ?: "").joinToString("|")
+            }).apply()
+            nuevas.forEach { l ->
+                nota("${l.tipo.etiqueta}: ${l.texto} (${l.hora})")
+                Registro.evento("SALUD", "lectura", "tipo" to l.tipo.name, "valor" to l.texto, "hora" to l.hora)
+            }
+            // Llegó el resultado de lo que se estaba midiendo: no hace falta esperar el resto del tiempo.
+            if (nuevas.any { it.tipo == _midiendo.value?.tipo }) medicion?.cancel()
+        }
         val m = _midiendo.value ?: return
         if (Salud.esRuido(e.categoria, e.sub)) return
         val r = ResultadoMedicion(System.currentTimeMillis(), m.tipo.etiqueta, e.categoria, e.sub, Protocolo.hex(e.datos))
@@ -435,6 +451,14 @@ class Reloj(contexto: Context) {
         ?.takeIf { it.size == 4 }?.let { p ->
             runCatching { ActividadVista(Salud.Actividad(p[0].toLong(), p[1].toLong(), p[2].toLong()), p[3].toLong()) }.getOrNull()
         }
+
+    private fun lecturasGuardadas(): List<Salud.Lectura> =
+        preferencias.getString("lecturas", null)?.lines()?.mapNotNull { l ->
+            val p = l.split("|")
+            runCatching {
+                Salud.Lectura(Salud.Medicion.valueOf(p[0]), p[1].toInt(), p[2].toInt(), p[3].toInt(), p[4].toInt(), p[5].toInt(), p[6].toIntOrNull())
+            }.getOrNull()
+        } ?: emptyList()
 
     private fun resultadosGuardados(): List<ResultadoMedicion> =
         preferencias.getString("resultados", null)?.lines()?.mapNotNull { ResultadoMedicion.deLinea(it) } ?: emptyList()
