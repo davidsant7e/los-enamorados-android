@@ -6,12 +6,12 @@ App Android que **habla directo con el smartwatch**, sin pasar por la app del fa
 
 Es la carta VI del mazo: el celular y el reloj, conversando.
 
-## Qué hace (versión 0.3.1, experimental)
+## Qué hace (versión 0.3.2, experimental)
 
 La pantalla, de arriba abajo:
 
 - **Reloj**: estado, batería, datos del fabricante y «Conectar». Encuentra el reloj por Bluetooth de baja energía: primero los aparatos «conectados ahora» (si HryFine está conectado, el reloj deja de anunciarse, pero se le puede hablar por el mismo enlace), luego los emparejados y los que encuentre cerca (★ = anuncia el canal de HryFine).
-- **Clima**: temperatura de ahora, estado (con ícono), mínima y máxima de hoy de la ciudad elegida (por defecto Bogotá; «Cambiar ciudad», sin pedir ubicación). Fuente: [Open-Meteo](https://open-meteo.com) (gratis, sin clave). **Se envía solo al reloj** al conectar y luego cada 3 horas mientras siga conectado; también con «Enviar al reloj». En el reloj aparece en su pantalla de clima (deslizando) o en las esferas que lo muestran.
+- **Clima**: temperatura de ahora, estado (con ícono), mínima y máxima de hoy de tu ubicación con «📍 Usar mi ubicación» (automático: pide la ubicación **aproximada** y redondea las coordenadas a ~1 km) o de la ciudad que elijas (por defecto Bogotá; «Cambiar ciudad»). Las temperaturas viajan al reloj en °F, que es como las espera. Fuente: [Open-Meteo](https://open-meteo.com) (gratis, sin clave). **Se envía solo al reloj** al conectar y luego cada 3 horas mientras siga conectado; también con «Enviar al reloj». En el reloj aparece en su pantalla de clima (deslizando) o en las esferas que lo muestran.
 - **Salud**, en lenguaje sencillo:
   - Resumen en una línea: «Hoy: 2.645 pasos · último pulso 83 lpm (normal en reposo) · presión 112/73 (normal)».
   - **Presión** con su categoría de la guía AHA/ACC 2017 en color (normal, elevada, alta etapa 1, alta etapa 2, crisis; y «baja» si es menos de 90/60) y qué significa cada número: la alta (sistólica) es la presión cuando el corazón late; la baja (diastólica), cuando descansa.

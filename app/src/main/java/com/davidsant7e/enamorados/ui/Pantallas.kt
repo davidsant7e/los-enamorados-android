@@ -91,6 +91,8 @@ class Acciones(
     val buscar: () -> Unit,
     val conectar: () -> Unit,
     val copiarConsola: () -> Unit,
+    /** Pide el permiso de ubicación aproximada y, si lo dan, activa el clima automático. */
+    val usarUbicacion: () -> Unit,
 )
 
 private val ES = Locale.forLanguageTag("es")
@@ -137,7 +139,7 @@ fun Enamorados(
                 item { Eleccion(cercanos, encontrados, buscando, permisos, reloj.direccionGuardada() != null, acciones) }
             } else {
                 item { TarjetaReloj(reloj, estado, bateria, info, acciones) }
-                item { TarjetaClima(vistaClima, clima, listo) }
+                item { TarjetaClima(vistaClima, clima, listo, acciones.usarUbicacion) }
                 item { PanelSalud(reloj, ajustes, listo, actividad, midiendo, lecturas) }
                 item { UsarElReloj(reloj, listo, musica) }
                 item { CabeceraAvanzadas(ajustes.avanzadas) { ajustes.cambiarAvanzadas(!ajustes.avanzadas) } }
@@ -257,11 +259,11 @@ private fun TarjetaReloj(reloj: Reloj, estado: Estado, bateria: Int?, info: Map<
 // ---------------------------------------------------------------------------------------------- clima
 
 @Composable
-private fun TarjetaClima(v: VistaClima, servicio: ServicioClima, listo: Boolean) {
+private fun TarjetaClima(v: VistaClima, servicio: ServicioClima, listo: Boolean, usarUbicacion: () -> Unit) {
     val hora = remember { SimpleDateFormat("HH:mm", ES) }
     var cambiando by rememberSaveable { mutableStateOf(false) }
     var ciudad by rememberSaveable { mutableStateOf("") }
-    Tarjeta("Clima" + (v.lugar?.let { " en ${it.nombre}" } ?: "")) {
+    Tarjeta("Clima" + (v.lugar?.let { " en ${it.nombre}" } ?: "") + if (v.automatico) "  📍" else "") {
         val c = v.clima
         if (c != null) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -302,8 +304,11 @@ private fun TarjetaClima(v: VistaClima, servicio: ServicioClima, listo: Boolean)
         FlowRow2 {
             Button(onClick = servicio::enviar, enabled = listo && c != null) { Text("Enviar al reloj") }
             OutlinedButton(onClick = servicio::actualizar, enabled = !v.cargando) { Text("Actualizar") }
-            if (!cambiando && v.opciones.isEmpty()) TextButton(onClick = { cambiando = true }) { Text("Cambiar ciudad") }
+            if (!v.automatico) OutlinedButton(onClick = usarUbicacion, enabled = !v.cargando) { Text("📍 Usar mi ubicación") }
+            if (!cambiando && v.opciones.isEmpty()) TextButton(onClick = { cambiando = true }) { Text(if (v.automatico) "Elegir ciudad a mano" else "Cambiar ciudad") }
         }
+        if (v.automatico) Text("Automático: la ciudad sale de la ubicación aproximada del celular (se revisa cada vez que se actualiza el clima).",
+            style = MaterialTheme.typography.bodySmall)
         Text(
             (if (v.enviadoAlReloj > 0) "Enviado al reloj a las ${hora.format(Date(v.enviadoAlReloj))}. " else "") +
                 "Se envía solo al conectar el reloj y cada 3 horas mientras siga conectado.",

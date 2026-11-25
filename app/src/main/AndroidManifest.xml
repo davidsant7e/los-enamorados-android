@@ -13,6 +13,8 @@
 
     <!-- Clima de Open-Meteo (sin clave y sin pedir ubicación: la ciudad se escribe en la app). -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Solo para el clima automático (ciudad aproximada); se pide al pulsar «Usar mi ubicación». -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
 

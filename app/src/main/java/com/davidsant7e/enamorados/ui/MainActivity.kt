@@ -54,6 +54,12 @@ class MainActivity : ComponentActivity() {
         if (permisos) alListo() else aviso("Sin el permiso de «Dispositivos cercanos» la app no puede hablar con el reloj.")
     }
 
+    private val pedirUbicacion = registerForActivityResult(ActivityResultContracts.RequestPermission()) { dado ->
+        Registro.evento("PERMISOS", "ubicacion", "concedido" to dado)
+        if (dado) clima.usarUbicacion()
+        else aviso("Sin el permiso de ubicación el clima sigue con la ciudad elegida. Puedes darlo en Ajustes → Apps → Los Enamorados → Permisos.")
+    }
+
     private val encenderBluetooth = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (bluetoothEncendido()) reloj.conectar()
     }
@@ -79,6 +85,10 @@ class MainActivity : ComponentActivity() {
                         buscar = { buscador.buscar() },
                         conectar = { if (bluetoothEncendido()) reloj.conectar() else pedirBluetooth() },
                         copiarConsola = ::copiarConsola,
+                        usarUbicacion = {
+                            if (com.davidsant7e.enamorados.clima.Ubicacion.tienePermiso(this)) clima.usarUbicacion()
+                            else pedirUbicacion.launch(com.davidsant7e.enamorados.clima.Ubicacion.PERMISO)
+                        },
                     ),
                 )
             }

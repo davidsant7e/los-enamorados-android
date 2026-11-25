@@ -32,6 +32,8 @@ data class VistaClima(
     val opciones: List<OpenMeteo.Lugar> = emptyList(),
     /** Última vez que se envió al reloj (ms), o 0. */
     val enviadoAlReloj: Long = 0,
+    /** La ciudad sale de la ubicación del celular (si no, la elegida a mano). */
+    val automatico: Boolean = false,
 )
 
 /**
@@ -39,6 +41,7 @@ data class VistaClima(
  * reloj solo: al conectar y luego cada 3 horas mientras siga conectado. Vive con el proceso, como el [Reloj].
  */
 class ServicioClima(contexto: Context, private val reloj: Reloj) {
+    private val ctx = contexto.applicationContext
     private val preferencias = contexto.applicationContext.getSharedPreferences("clima", Context.MODE_PRIVATE)
     private val alcance = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val _vista = MutableStateFlow(guardada())
@@ -86,12 +89,23 @@ class ServicioClima(contexto: Context, private val reloj: Reloj) {
         }
     }
 
+    /** Clima según la ubicación del celular (el permiso ya debe estar dado). */
+    fun usarUbicacion() {
+        preferencias.edit().putBoolean("automatico", true).apply()
+        _vista.update { it.copy(automatico = true, opciones = emptyList(), error = null) }
+        Registro.evento("CLIMA", "automatico", "activo" to true)
+        alcance.launch {
+            descargar()
+            if (reloj.estado.value is Estado.Listo) enviarAlReloj(automatico = false)
+        }
+    }
+
     fun elegir(lugar: OpenMeteo.Lugar) {
-        preferencias.edit()
+        preferencias.edit().putBoolean("automatico", false)
             .putString("nombre", lugar.nombre).putString("region", lugar.region).putString("pais", lugar.pais)
             .putString("lat", lugar.latitud.toString()).putString("lon", lugar.longitud.toString())
             .remove("clima").apply()
-        _vista.update { it.copy(lugar = lugar, clima = null, momento = 0, opciones = emptyList(), error = null) }
+        _vista.update { it.copy(lugar = lugar, clima = null, momento = 0, opciones = emptyList(), error = null, automatico = false) }
         alcance.launch {
             descargar()
             if (reloj.estado.value is Estado.Listo) enviarAlReloj(automatico = false)
@@ -121,7 +135,11 @@ class ServicioClima(contexto: Context, private val reloj: Reloj) {
     private suspend fun descargar() {
         _vista.update { it.copy(cargando = true, error = null) }
         val resultado = runCatching {
-            val lugar = _vista.value.lugar ?: OpenMeteo.lugaresDe(bajar(OpenMeteo.urlBusqueda(OpenMeteo.CIUDAD_POR_DEFECTO))).firstOrNull()
+            val aqui = if (_vista.value.automatico) {
+                if (!Ubicacion.tienePermiso(ctx)) error("falta el permiso de ubicación; pulsa «Usar mi ubicación»")
+                Ubicacion.lugarActual(ctx) // si el celular no sabe dónde está, se usa la última ciudad
+            } else null
+            val lugar = aqui ?: _vista.value.lugar ?: OpenMeteo.lugaresDe(bajar(OpenMeteo.urlBusqueda(OpenMeteo.CIUDAD_POR_DEFECTO))).firstOrNull()
                 ?: error("no encontré ${OpenMeteo.CIUDAD_POR_DEFECTO}")
             val json = bajar(OpenMeteo.urlPronostico(lugar.latitud, lugar.longitud))
             val clima = OpenMeteo.climaDe(json) ?: error("respuesta inesperada")
@@ -165,7 +183,7 @@ class ServicioClima(contexto: Context, private val reloj: Reloj) {
             OpenMeteo.Lugar(nombre, preferencias.getString("region", null), preferencias.getString("pais", null), lat, lon) else null
         val clima = preferencias.getString("clima", null)?.let { runCatching { OpenMeteo.climaDe(it) }.getOrNull() }
         return VistaClima(lugar = lugar, clima = clima, momento = if (clima != null) preferencias.getLong("momento", 0) else 0,
-            enviadoAlReloj = preferencias.getLong("enviado", 0))
+            enviadoAlReloj = preferencias.getLong("enviado", 0), automatico = preferencias.getBoolean("automatico", false))
     }
 
     companion object {
