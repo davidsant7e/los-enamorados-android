@@ -144,4 +144,15 @@ class ProtocoloTest {
         assertEquals("anterior", Protocolo.nombre(0x0C, 0x0C))
         assertEquals("05/7A", Protocolo.nombre(0x05, 0x7A))
     }
+
+    @Test fun `el clima viaja en Fahrenheit`() {
+        // 24 nov: con 15 el reloj mostró −09 (15 °F = −9,4 °C). Ahora 13/24/15 °C van como 55/75/59 °F.
+        val t = Comandos.clima(2026, 11, 24, Clima.NUBLADO, 13, 24, 15, "Bogotá")
+        assertArrayEquals(h("07 EA 0B 18 00"), t.copyOfRange(9, 14))
+        assertArrayEquals(byteArrayOf(55, 75, 59), t.copyOfRange(15, 18))
+        assertEquals(Protocolo.suma(t), t[3].toInt() and 0xFF)
+        assertEquals(59, Comandos.aFahrenheit(15))
+        assertEquals(32, Comandos.aFahrenheit(0))
+        assertEquals(21, Comandos.aFahrenheit(-6))
+    }
 }

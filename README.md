@@ -6,7 +6,7 @@ App Android que **habla directo con el smartwatch**, sin pasar por la app del fa
 
 Es la carta VI del mazo: el celular y el reloj, conversando.
 
-## Qué hace (versión 0.3, experimental)
+## Qué hace (versión 0.3.1, experimental)
 
 La pantalla, de arriba abajo:
 

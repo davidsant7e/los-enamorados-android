@@ -213,12 +213,19 @@ object Comandos {
         Protocolo.trama(Protocolo.CAT_AJUSTES, 0x11,
             byteArrayOf(if (sonando) 1 else 0, 0) + textoParaReloj(nombre, MAX_BYTES_NOMBRE))
 
+    /**
+     * Clima del día. Las temperaturas se reciben en °C y **viajan en °F**: el 24 nov el reloj mostró −09
+     * al mandarle 15 (15 °F = −9,4 °C), o sea que el reloj las lee en Fahrenheit y las pasa a Celsius.
+     */
     fun clima(anio: Int, mes: Int, dia: Int, clima: Clima, minima: Int, maxima: Int, actual: Int, ciudad: String) =
         Protocolo.trama(Protocolo.CAT_AJUSTES, 0x1D,
             byteArrayOf(
                 (anio shr 8).toByte(), anio.toByte(), mes.toByte(), dia.toByte(), 0,
-                clima.codigo.toByte(), minima.toByte(), maxima.toByte(), actual.toByte(),
+                clima.codigo.toByte(), aFahrenheit(minima).toByte(), aFahrenheit(maxima).toByte(), aFahrenheit(actual).toByte(),
             ) + textoParaReloj(ciudad, MAX_BYTES_CIUDAD))
+
+    /** °C → °F redondeado, como lo espera el reloj (cabe en un byte entre −17 °C y 123 °C). */
+    fun aFahrenheit(celsius: Int): Int = Math.round(celsius * 9 / 5.0 + 32).toInt()
 
     fun formato24h(si: Boolean = true) = Protocolo.trama(Protocolo.CAT_AJUSTES, 0x1A, byteArrayOf(if (si) 1 else 0))
     fun metrico(si: Boolean = true) = Protocolo.trama(Protocolo.CAT_AJUSTES, 0x1B, byteArrayOf(if (si) 1 else 0))
