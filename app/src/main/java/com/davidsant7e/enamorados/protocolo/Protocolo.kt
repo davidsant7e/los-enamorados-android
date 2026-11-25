@@ -103,6 +103,7 @@ object Protocolo {
     fun nombre(categoria: Int, sub: Int): String = when (categoria) {
         CAT_AJUSTES -> NOMBRES_AJUSTES[sub]
         CAT_CONTROL -> NOMBRES_CONTROL[sub]
+        Salud.CAT_DATOS -> mapOf(Salud.SUB_ACTIVIDAD to "actividad del día", Salud.SUB_PEDIR_ACTIVIDAD to "pedir actividad")[sub]
         else -> null
     } ?: "%02X/%02X".format(categoria, sub)
 

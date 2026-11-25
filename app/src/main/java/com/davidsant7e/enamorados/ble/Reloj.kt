@@ -18,6 +18,7 @@ import com.davidsant7e.enamorados.protocolo.IconoApp
 import com.davidsant7e.enamorados.protocolo.Lector
 import com.davidsant7e.enamorados.protocolo.Protocolo
 import com.davidsant7e.enamorados.protocolo.Recibido
+import com.davidsant7e.enamorados.protocolo.Salud
 import com.davidsant7e.enamorados.registro.Registro
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -49,6 +50,24 @@ sealed class Estado(val texto: String) {
     data class Error(val mensaje: String) : Estado("Error: $mensaje")
 }
 
+/** Lo último que el reloj dijo de la actividad del día (llega cuando la app la pide o cuando sincroniza HryFine). */
+data class ActividadVista(val actividad: Salud.Actividad, val momento: Long)
+
+/** Una medición en curso. */
+data class Midiendo(val tipo: Salud.Medicion, val inicio: Long)
+
+/** Un evento que llegó mientras se medía: probablemente el resultado (formato aún por descifrar). */
+data class ResultadoMedicion(val momento: Long, val tipo: String, val categoria: Int, val sub: Int, val hex: String) {
+    val decimales: String get() = Salud.decimales(Protocolo.deHex(hex) ?: ByteArray(0))
+    fun linea() = listOf(momento, tipo, categoria, sub, hex).joinToString("|")
+
+    companion object {
+        fun deLinea(l: String): ResultadoMedicion? = l.split("|").takeIf { it.size == 5 }?.let {
+            runCatching { ResultadoMedicion(it[0].toLong(), it[1], it[2].toInt(), it[3].toInt(), it[4]) }.getOrNull()
+        }
+    }
+}
+
 /** Una línea de la consola: lo que se envió (→), lo que llegó (←) o una nota (·). */
 data class LineaConsola(val momento: Long, val direccion: Char, val texto: String, val hex: String = "")
 
@@ -75,6 +94,15 @@ class Reloj(contexto: Context) {
     private val _musica = MutableStateFlow(preferencias.getBoolean("musica", true))
     /** Los botones de música del reloj controlan la música del celular. */
     val musica: StateFlow<Boolean> = _musica.asStateFlow()
+
+    private val _actividad = MutableStateFlow(actividadGuardada())
+    val actividad: StateFlow<ActividadVista?> = _actividad.asStateFlow()
+    private val _midiendo = MutableStateFlow<Midiendo?>(null)
+    val midiendo: StateFlow<Midiendo?> = _midiendo.asStateFlow()
+    private val _resultados = MutableStateFlow(resultadosGuardados())
+    /** Lo que llegó durante las mediciones, el más nuevo primero. */
+    val resultados: StateFlow<List<ResultadoMedicion>> = _resultados.asStateFlow()
+    private var medicion: Job? = null
 
     private var gatt: BluetoothGatt? = null
     private var rx: BluetoothGattCharacteristic? = null
@@ -167,6 +195,7 @@ class Reloj(contexto: Context) {
                 } else {
                     val antes = _estado.value
                     cerrarGatt()
+                    medicion?.cancel(); _midiendo.value = null
                     val agotado = Protocolo.esTiempoAgotado(status)
                     val motivo = if (agotado) "el reloj no respondió a tiempo (código $status)" else "código $status"
                     Registro.evento("CONEXION", "cerrada", "status" to status, "estaba" to antes.texto)
@@ -353,6 +382,63 @@ class Reloj(contexto: Context) {
 
     fun limpiarConsola() { _consola.value = emptyList() }
 
+    // ------------------------------------------------------------------ salud
+
+    /** Pide al reloj los pasos del día (experimental: 05/06 sin datos, como se vio en la sincronización de HryFine). */
+    fun pedirActividad() = lanzar("pedir actividad", Salud.pedirActividad())
+
+    /** Empieza una medición; se detiene sola al cumplir su tiempo. Lo que llegue mientras tanto se guarda. */
+    fun medir(tipo: Salud.Medicion) {
+        if (_midiendo.value != null) return
+        medicion = alcance.launch {
+            if (!enviar(Salud.medir(tipo, true), "medir ${tipo.etiqueta.lowercase()}")) return@launch
+            _midiendo.value = Midiendo(tipo, System.currentTimeMillis())
+            nota("Midiendo ${tipo.etiqueta.lowercase()}: deja el reloj quieto en la muñeca (${tipo.segundos} s)")
+            Registro.evento("MEDICION", "inicio", "tipo" to tipo.name)
+            try {
+                delay(tipo.segundos * 1000L)
+            } finally {
+                withContext(NonCancellable) {
+                    if (_midiendo.value != null) enviar(Salud.medir(tipo, false), "detener ${tipo.etiqueta.lowercase()}")
+                    _midiendo.value = null
+                    Registro.evento("MEDICION", "fin", "tipo" to tipo.name)
+                }
+            }
+        }
+    }
+
+    fun detenerMedicion() { medicion?.cancel() }
+
+    fun borrarResultados() {
+        _resultados.value = emptyList()
+        preferencias.edit().remove("resultados").apply()
+    }
+
+    private fun salud(e: Recibido.Evento) {
+        Salud.actividadDe(e.categoria, e.sub, e.datos)?.let { a ->
+            val vista = ActividadVista(a, System.currentTimeMillis())
+            _actividad.value = vista
+            preferencias.edit().putString("actividad", "${a.pasos}|${a.metros}|${a.calorias}|${vista.momento}").apply()
+            nota("Actividad: ${a.pasos} pasos, ${a.metros} m")
+            Registro.evento("SALUD", "actividad", "pasos" to a.pasos, "metros" to a.metros, "tercero" to a.calorias)
+        }
+        val m = _midiendo.value ?: return
+        if (Salud.esRuido(e.categoria, e.sub)) return
+        val r = ResultadoMedicion(System.currentTimeMillis(), m.tipo.etiqueta, e.categoria, e.sub, Protocolo.hex(e.datos))
+        _resultados.update { (listOf(r) + it).take(MAX_RESULTADOS) }
+        preferencias.edit().putString("resultados", _resultados.value.joinToString("\n") { it.linea() }).apply()
+        Registro.evento("MEDICION", "dato", "tipo" to m.tipo.name, "evento" to "%02X/%02X".format(e.categoria, e.sub),
+            "hex" to r.hex, "decimal" to r.decimales)
+    }
+
+    private fun actividadGuardada(): ActividadVista? = preferencias.getString("actividad", null)?.split("|")
+        ?.takeIf { it.size == 4 }?.let { p ->
+            runCatching { ActividadVista(Salud.Actividad(p[0].toLong(), p[1].toLong(), p[2].toLong()), p[3].toLong()) }.getOrNull()
+        }
+
+    private fun resultadosGuardados(): List<ResultadoMedicion> =
+        preferencias.getString("resultados", null)?.lines()?.mapNotNull { ResultadoMedicion.deLinea(it) } ?: emptyList()
+
     // ------------------------------------------------------------------ recibir
 
     private fun llego(c: BluetoothGattCharacteristic, valor: ByteArray) {
@@ -365,6 +451,7 @@ class Reloj(contexto: Context) {
             agregar(LineaConsola(System.currentTimeMillis(), '←', r.describir(), Protocolo.hex(r.bytes)))
             Registro.evento("RECIBIDO", r.javaClass.simpleName.lowercase(), "que" to r.describir(), "bytes" to Protocolo.hex(r.bytes).take(120))
             if (r is Recibido.Evento && r.categoria == Protocolo.CAT_CONTROL && _musica.value) boton(r.sub)
+            if (r is Recibido.Evento) salud(r)
         }
     }
 
@@ -388,6 +475,7 @@ class Reloj(contexto: Context) {
 
     companion object {
         const val MAX_LINEAS = 400
+        const val MAX_RESULTADOS = 40
         /** Fallos seguidos estando en espera antes de mostrar el error (cada uno espera 5 s). */
         const val MAX_FALLOS_ESPERA = 20
 

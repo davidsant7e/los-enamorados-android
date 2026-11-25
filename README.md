@@ -6,9 +6,10 @@ App Android que **habla directo con el smartwatch**, sin pasar por la app del fa
 
 Es la carta VI del mazo: el celular y el reloj, conversando.
 
-## Qué hace (versión 0.1.2, experimental)
+## Qué hace (versión 0.2, experimental)
 
 - **Encuentra y conecta el reloj** por Bluetooth de baja energía. Muestra primero los aparatos «conectados ahora» (si HryFine está conectado, el reloj deja de anunciarse, pero se le puede hablar por el mismo enlace), luego los emparejados y los que encuentre cerca. Marca con ★ los que anuncian el canal de HryFine.
+- **Salud**: pasos de hoy, distancia y calorías (por confirmar) — se piden con «Actualizar pasos» y también llegan cuando HryFine sincroniza. Botones para medir **pulso, presión y oxígeno**: la app guarda lo que manda el reloj mientras mide (en decimal y hexadecimal) para terminar de descifrar el formato. Orientativo, no sirve para diagnóstico.
 - **Panel del reloj**: estado, batería y datos del fabricante (modelo, firmware…).
 - **Probar el reloj**: vibrar (un pulso o 5 s), poner la hora del celular, enviar un mensaje con ícono (SMS, WhatsApp…), simular una llamada y colgarla, enviar el clima.
 - **Botones de música**: en la pantalla de música del reloj, «anterior», «siguiente» y «pausa» controlan la música del celular (se puede apagar).
@@ -19,7 +20,7 @@ Es la carta VI del mazo: el celular y el reloj, conversando.
 
 1. Instala el APK: [los-enamorados.apk](https://github.com/davidsant7e/los-enamorados-android/releases/download/ultima/los-enamorados.apk) (se compila solo en GitHub) o con `C:\Git\compilar-todo.bat`.
 2. Ábrela y da el permiso de **Dispositivos cercanos**.
-3. Elige el reloj (o escribe `41:42:CE:02:D5:6C`). La app recuerda tu elección y se conecta sola al abrirla.
+3. Elige el reloj (o escribe `41:42:CE:02:D5:6C`). **No lo vincules en los ajustes de Bluetooth del celular**: si Android lo vincula, mezcla la dirección de datos con la de llamadas y después ninguna app logra reconectar (error 147). Si pasa, «Olvidar» el Smartwatch en Ajustes y elegirlo otra vez en la app. La app recuerda tu elección y se conecta sola al abrirla.
 4. Prueba **Vibrar**. Si el reloj vibra, el canal funciona; sigue con mensaje, hora, llamada y clima.
 
 **HryFine puede quedarse instalado.** Android permite que dos apps hablen con el mismo reloj. Si algo no responde, cierra HryFine (Ajustes → Apps → HryFine → Forzar detención) y vuelve a conectar.

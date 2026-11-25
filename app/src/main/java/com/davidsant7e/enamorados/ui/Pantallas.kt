@@ -30,6 +30,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,13 +48,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.davidsant7e.enamorados.ble.Buscador
 import com.davidsant7e.enamorados.ble.Encontrado
+import com.davidsant7e.enamorados.ble.ActividadVista
 import com.davidsant7e.enamorados.ble.Estado
+import com.davidsant7e.enamorados.ble.Midiendo
+import com.davidsant7e.enamorados.ble.ResultadoMedicion
 import com.davidsant7e.enamorados.ble.LineaConsola
 import com.davidsant7e.enamorados.ble.Reloj
 import com.davidsant7e.enamorados.protocolo.Clima
 import com.davidsant7e.enamorados.protocolo.Comandos
 import com.davidsant7e.enamorados.protocolo.IconoApp
 import com.davidsant7e.enamorados.protocolo.Protocolo
+import com.davidsant7e.enamorados.protocolo.Salud
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -82,6 +89,9 @@ fun Enamorados(
     val info by reloj.info.collectAsState()
     val consola by reloj.consola.collectAsState()
     val musica by reloj.musica.collectAsState()
+    val actividad by reloj.actividad.collectAsState()
+    val midiendo by reloj.midiendo.collectAsState()
+    val resultados by reloj.resultados.collectAsState()
     val encontrados by buscador.encontrados.collectAsState()
     val buscando by buscador.buscando.collectAsState()
     val listo = estado is Estado.Listo
@@ -99,6 +109,7 @@ fun Enamorados(
                 item { Eleccion(cercanos, encontrados, buscando, permisos, reloj.direccionGuardada() != null, acciones) }
             } else {
                 item { TarjetaReloj(reloj, estado, bateria, info, acciones) }
+                item { PanelSalud(reloj, listo, actividad, midiendo, resultados) }
                 item { PanelPruebas(reloj, listo) }
                 item {
                     Tarjeta("Botones de música del reloj") {
@@ -204,6 +215,61 @@ private fun TarjetaReloj(reloj: Reloj, estado: Estado, bateria: Int?, info: Map<
                 else -> Button(onClick = acciones.conectar) { Text("Conectar") }
             }
             TextButton(onClick = acciones.elegir) { Text("Cambiar de reloj") }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PanelSalud(reloj: Reloj, listo: Boolean, actividad: ActividadVista?, midiendo: Midiendo?, resultados: List<ResultadoMedicion>) {
+    val hora = remember { SimpleDateFormat("d MMM HH:mm", Locale.forLanguageTag("es")) }
+    Tarjeta("Salud") {
+        // Actividad del día
+        if (actividad == null) {
+            Text("Todavía no hay pasos del reloj. Pulsa «Actualizar pasos» o abre HryFine: cuando sincroniza, la app también los recibe.",
+                style = MaterialTheme.typography.bodySmall)
+        } else {
+            val a = actividad.actividad
+            Text("%,d pasos".format(Locale.forLanguageTag("es"), a.pasos), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary)
+            Text("%.2f km  ·  %.1f kcal (por confirmar)".format(Locale.forLanguageTag("es"), a.kilometros, a.kcal), style = MaterialTheme.typography.bodyMedium)
+            Text("Actualizado ${hora.format(Date(actividad.momento))}", style = MaterialTheme.typography.bodySmall)
+        }
+        OutlinedButton(onClick = reloj::pedirActividad, enabled = listo) { Text("Actualizar pasos") }
+
+        HorizontalDivider()
+        // Mediciones
+        Text("Mediciones", fontWeight = FontWeight.SemiBold)
+        if (midiendo != null) {
+            var ahora by remember { mutableLongStateOf(System.currentTimeMillis()) }
+            LaunchedEffect(midiendo) { while (true) { ahora = System.currentTimeMillis(); delay(1000) } }
+            val faltan = (midiendo.tipo.segundos - (ahora - midiendo.inicio) / 1000).coerceAtLeast(0)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                CircularProgressIndicator(Modifier.width(24.dp))
+                Text("Midiendo ${midiendo.tipo.etiqueta.lowercase()}… $faltan s. Deja el reloj quieto en la muñeca.",
+                    Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            }
+            OutlinedButton(onClick = reloj::detenerMedicion) { Text("Detener") }
+        } else {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Salud.Medicion.entries.forEach { m -> Button(onClick = { reloj.medir(m) }, enabled = listo) { Text(m.etiqueta) } }
+            }
+        }
+        Text("Al terminar, anota lo que muestra el reloj en pantalla: así descifro el formato del resultado. " +
+            "Las mediciones de un reloj son orientativas, no sirven para diagnóstico.", style = MaterialTheme.typography.bodySmall)
+        if (resultados.isNotEmpty()) {
+            HorizontalDivider()
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Lo que mandó el reloj al medir", Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                TextButton(onClick = reloj::borrarResultados) { Text("Borrar") }
+            }
+            resultados.take(12).forEach { r ->
+                Column(Modifier.padding(vertical = 2.dp)) {
+                    Text("${hora.format(Date(r.momento))} · ${r.tipo} · evento %02X/%02X".format(r.categoria, r.sub), fontSize = 12.sp)
+                    Text(r.decimales, fontFamily = FontFamily.Monospace, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text(r.hex, fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+                }
+            }
         }
     }
 }
