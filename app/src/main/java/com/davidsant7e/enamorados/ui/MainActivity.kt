@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat
 import com.davidsant7e.enamorados.ble.Buscador
 import com.davidsant7e.enamorados.ble.Encontrado
 import com.davidsant7e.enamorados.ble.Reloj
+import com.davidsant7e.enamorados.clima.ServicioClima
 import com.davidsant7e.enamorados.registro.Registro
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -30,13 +31,19 @@ import java.util.Locale
 object Piezas {
     @Volatile private var reloj: Reloj? = null
     @Volatile private var buscador: Buscador? = null
+    @Volatile private var clima: ServicioClima? = null
+    @Volatile private var ajustes: Ajustes? = null
     fun reloj(a: android.content.Context) = reloj ?: synchronized(this) { reloj ?: Reloj(a).also { reloj = it } }
     fun buscador(a: android.content.Context) = buscador ?: synchronized(this) { buscador ?: Buscador(a).also { buscador = it } }
+    fun clima(a: android.content.Context) = clima ?: synchronized(this) { clima ?: ServicioClima(a, reloj(a)).also { clima = it } }
+    fun ajustes(a: android.content.Context) = ajustes ?: synchronized(this) { ajustes ?: Ajustes(a).also { ajustes = it } }
 }
 
 class MainActivity : ComponentActivity() {
     private val reloj by lazy { Piezas.reloj(this) }
     private val buscador by lazy { Piezas.buscador(this) }
+    private val clima by lazy { Piezas.clima(this) }
+    private val ajustes by lazy { Piezas.ajustes(this) }
     private var permisos by mutableStateOf(false)
     private var eligiendo by mutableStateOf(false)
     private var cercanos by mutableStateOf<List<Encontrado>>(emptyList())
@@ -59,6 +66,8 @@ class MainActivity : ComponentActivity() {
                 Enamorados(
                     reloj = reloj,
                     buscador = buscador,
+                    clima = clima,
+                    ajustes = ajustes,
                     permisos = permisos,
                     eligiendo = eligiendo,
                     cercanos = cercanos,
@@ -77,6 +86,11 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) {
             if (!permisos) pedir() else alListo()
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        clima.actualizarSiHaceFalta()
     }
 
     private fun alListo() {

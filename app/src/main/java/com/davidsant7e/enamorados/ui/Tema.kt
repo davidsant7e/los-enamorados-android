@@ -41,3 +41,24 @@ private val Oscuro = darkColorScheme(
 fun TemaEnamorados(contenido: @Composable () -> Unit) {
     MaterialTheme(colorScheme = if (isSystemInDarkTheme()) Oscuro else Claro, content = contenido)
 }
+
+/** Colores legibles para el estado de una lectura, en claro y en oscuro. */
+@Composable
+fun colorTono(tono: com.davidsant7e.enamorados.salud.Tono): Color {
+    val oscuro = isSystemInDarkTheme()
+    return when (tono) {
+        com.davidsant7e.enamorados.salud.Tono.BIEN -> if (oscuro) Color(0xFF8FD694) else Color(0xFF2E7D32)
+        com.davidsant7e.enamorados.salud.Tono.OJO -> if (oscuro) Color(0xFFFFC870) else Color(0xFF8A5A00)
+        com.davidsant7e.enamorados.salud.Tono.ALERTA -> if (oscuro) Color(0xFFFF8A80) else Color(0xFFC62828)
+        com.davidsant7e.enamorados.salud.Tono.NEUTRO -> MaterialTheme.colorScheme.onSurface
+    }
+}
+
+/** Zonas de cardio: de azul suave (1) a rojo (5), pasando por el durazno de los Arcanos. */
+fun colorZona(numero: Int): Color = when (numero) {
+    1 -> Color(0xFF8FA6D8)
+    2 -> Color(0xFF6BAF73)
+    3 -> Color(0xFFE8C04A)
+    4 -> Durazno
+    else -> Color(0xFFD9534F)
+}
