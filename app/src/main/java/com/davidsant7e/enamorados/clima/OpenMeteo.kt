@@ -11,7 +11,6 @@ import kotlin.math.roundToInt
  * respuestas y la traducción de los códigos WMO a lo que entiende el reloj. La descarga está en `ServicioClima`.
  */
 object OpenMeteo {
-    const val CIUDAD_POR_DEFECTO = "Bogotá"
 
     data class Lugar(val nombre: String, val region: String?, val pais: String?, val latitud: Double, val longitud: Double) {
         /** «Bogotá, Bogotá D.C., Colombia» sin repetir. */

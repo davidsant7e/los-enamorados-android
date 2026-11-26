@@ -37,7 +37,7 @@ data class VistaClima(
 )
 
 /**
- * Descarga el clima de Open-Meteo para la ciudad elegida (por defecto Bogotá; sin pedir ubicación) y lo envía al
+ * Descarga el clima de Open-Meteo para la ciudad elegida (la que elijas, o tu ubicación si lo pides) y lo envía al
  * reloj solo: al conectar y luego cada 3 horas mientras siga conectado. Vive con el proceso, como el [Reloj].
  */
 class ServicioClima(contexto: Context, private val reloj: Reloj) {
@@ -122,7 +122,7 @@ class ServicioClima(contexto: Context, private val reloj: Reloj) {
         if (System.currentTimeMillis() - _vista.value.momento > VIEJO) descargar()
         val v = _vista.value
         val c = v.clima ?: return
-        val ciudad = v.lugar?.nombre ?: OpenMeteo.CIUDAD_POR_DEFECTO
+        val ciudad = v.lugar?.nombre ?: ""
         val hoy = Calendar.getInstance()
         val trama = OpenMeteo.tramaReloj(c, ciudad, hoy.get(Calendar.YEAR), hoy.get(Calendar.MONTH) + 1, hoy.get(Calendar.DAY_OF_MONTH))
         if (reloj.enviar(trama, if (automatico) "clima (automático)" else "clima")) {
@@ -139,8 +139,8 @@ class ServicioClima(contexto: Context, private val reloj: Reloj) {
                 if (!Ubicacion.tienePermiso(ctx)) error("falta el permiso de ubicación; pulsa «Usar mi ubicación»")
                 Ubicacion.lugarActual(ctx) // si el celular no sabe dónde está, se usa la última ciudad
             } else null
-            val lugar = aqui ?: _vista.value.lugar ?: OpenMeteo.lugaresDe(bajar(OpenMeteo.urlBusqueda(OpenMeteo.CIUDAD_POR_DEFECTO))).firstOrNull()
-                ?: error("no encontré ${OpenMeteo.CIUDAD_POR_DEFECTO}")
+            // Sin ciudad elegida ni ubicación no se adivina ninguna: cada quien elige la suya.
+            val lugar = aqui ?: _vista.value.lugar ?: error("elige tu ciudad o pulsa «Usar mi ubicación»")
             val json = bajar(OpenMeteo.urlPronostico(lugar.latitud, lugar.longitud))
             val clima = OpenMeteo.climaDe(json) ?: error("respuesta inesperada")
             Triple(lugar, clima, json)

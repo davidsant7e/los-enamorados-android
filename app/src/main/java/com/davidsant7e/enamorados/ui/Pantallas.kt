@@ -209,7 +209,7 @@ private fun Eleccion(
     }.sortedWith(Buscador.ORDEN)
     Tarjeta("Elige tu reloj") {
         Text("El reloj aparece como «Smartwatch». Su dirección de datos (BLE) es la que termina distinto a la de llamadas: " +
-            "en tu reloj, 41:42:CE:02:D5:6C. Si HryFine está conectado, el reloj sale en «conectado ahora».",
+            "la ves en el menú «À propos / Acerca de» del reloj. Si HryFine está conectado, el reloj sale en «conectado ahora».",
             style = MaterialTheme.typography.bodyMedium)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Button(onClick = acciones.buscar, enabled = permisos && !buscando) { Text(if (buscando) "Buscando…" else "Buscar cerca") }
@@ -229,7 +229,7 @@ private fun Eleccion(
         HorizontalDivider()
         OutlinedTextField(
             value = manual, onValueChange = { manual = it.uppercase().take(17) },
-            label = { Text("O escribe la dirección") }, placeholder = { Text("41:42:CE:02:D5:6C") },
+            label = { Text("O escribe la dirección") }, placeholder = { Text("AA:BB:CC:DD:EE:FF") },
             singleLine = true, modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
         )
@@ -636,7 +636,7 @@ private fun ClimaAMano(reloj: Reloj, listo: Boolean) {
     var clima by rememberSaveable { mutableStateOf(Clima.NUBLADO) }
     var menuClima by remember { mutableStateOf(false) }
     var temperatura by rememberSaveable { mutableStateOf("18") }
-    var ciudad by rememberSaveable { mutableStateOf("Bogotá") }
+    var ciudad by rememberSaveable { mutableStateOf("Mi ciudad") }
     Tarjeta("Clima a mano") {
         Text("Envía un clima inventado para ver cómo lo muestra el reloj. El clima real ya se envía solo desde la tarjeta de arriba.",
             style = MaterialTheme.typography.bodySmall)
