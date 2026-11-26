@@ -24,7 +24,7 @@ La pantalla, de arriba abajo:
 
 ## Cómo usarla
 
-1. Instala el APK: [los-enamorados.apk](https://github.com/davidsant7e/los-enamorados-android/releases/download/ultima/los-enamorados.apk) (se compila solo en GitHub) o con `C:\Git\compilar-todo.bat`.
+1. Instala el APK: [los-enamorados.apk](https://github.com/el-ermitanho/los-enamorados-android/releases/download/ultima/los-enamorados.apk) (se compila solo en GitHub) o con `C:\Git\compilar-todo.bat`.
 2. Ábrela y da el permiso de **Dispositivos cercanos**.
 3. Elige el reloj (o escribe `41:42:CE:02:D5:6C`). **No lo vincules en los ajustes de Bluetooth del celular**: si Android lo vincula, mezcla la dirección de datos con la de llamadas y después ninguna app logra reconectar (error 147). Si pasa, «Olvidar» el Smartwatch en Ajustes y elegirlo otra vez en la app. La app recuerda tu elección y se conecta sola al abrirla.
 4. Prueba **Vibrar**. Si el reloj vibra, el canal funciona. El clima se envía solo al conectar.
@@ -59,4 +59,4 @@ Prueban el armado de tramas (con valores calculados aparte), la hora empaquetada
 
 - Kotlin, Jetpack Compose, minSdk 26, compileSdk 37. Sin librerías de Bluetooth externas.
 - Paquete `com.davidsant7e.enamorados`. Firma de prueba compartida (`firma/`), igual que las demás apps.
-- Parte del mazo de los Arcanos: [davidsant7e](https://github.com/davidsant7e).
+- Parte del mazo de los Arcanos: [el-ermitanho](https://github.com/el-ermitanho).
